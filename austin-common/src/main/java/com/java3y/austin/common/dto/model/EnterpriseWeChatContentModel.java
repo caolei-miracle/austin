@@ -1,4 +1,4 @@
-package com.java3y.austin.common.dto;
+package com.java3y.austin.common.dto.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * @author 3y
- * 企业微信
+ * 企业微信 应用消息
  */
 @Data
 @Builder
@@ -18,7 +18,7 @@ public class EnterpriseWeChatContentModel extends ContentModel {
     /**
      * 下发企业微信消息的类型
      */
-    private String messageType;
+    private String sendType;
 
     /**
      * 文本消息 - 文案

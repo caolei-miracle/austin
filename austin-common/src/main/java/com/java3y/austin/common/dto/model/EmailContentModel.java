@@ -1,4 +1,4 @@
-package com.java3y.austin.common.dto;
+package com.java3y.austin.common.dto.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 
 /**
  * @author 3y
+ * <p>
+ * <p>
+ * 邮件消息体
  */
 @Data
 @Builder

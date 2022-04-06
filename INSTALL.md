@@ -5,7 +5,7 @@
 ```
 wget -i -c http://dev.mysql.com/get/mysql57-community-release-el7-10.noarch.rpm
 yum -y install mysql57-community-release-el7-10.noarch.rpm
-yum -y install mysql-community-server
+yum -y install mysql-community-server --nogpgcheck
 ```
 
 **二**、启动并查看状态MySQL：
@@ -116,6 +116,9 @@ sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 ```
 docker-compose --version
 ```
+
+
+（Austin项目的中间件使用docker进行部署，文件内容可以参考项目中`docker`文件夹)
 
 ## 03、安装KAFKA
 
@@ -246,8 +249,6 @@ docker ps
 
 docker exec -it redis redis-cli
 
--- 进入到redis后访问的密码
-
 auth austin
 
 ```
@@ -276,7 +277,8 @@ auth austin
 
 PS：我的namespace是`boss.austin`
 
-![](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2101f27fee044a2d86e8d6031c808d95~tplv-k3u1fbpfcp-zoom-1.image)
+
+![](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4c4636a5620a454b931aea8b248e2890~tplv-k3u1fbpfcp-watermark.image?)
 
 ## 06、安装PROMETHEUS和GRAFANA(可选)
 
@@ -508,7 +510,45 @@ docker run -e PARAMS="--spring.datasource.url=jdbc:mysql://ip:3306/xxl_job?useUn
 
 ![](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/180eabb4945e475494f3803c69318755~tplv-k3u1fbpfcp-zoom-1.image)
 
-## 09、未完待续
+## 09、Flink
+
+部署Flink也是直接上docker-compose就完事了，值得注意的是：我们在部署的时候需要在配置文件里**指定时区**
+
+docker-compose.yml配置内容如下：
+
+```yaml
+version: "2.2"
+services:
+  jobmanager:
+    image: flink:latest
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+      - SET_CONTAINER_TIMEZONE=true
+      - CONTAINER_TIMEZONE=Asia/Shanghai
+      - TZ=Asia/Shanghai
+  taskmanager:
+    image: flink:latest
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    scale: 1
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+      - SET_CONTAINER_TIMEZONE=true
+      - CONTAINER_TIMEZONE=Asia/Shanghai
+      - TZ=Asia/Shanghai
+```
+
+
+## 10、未完待续
 
 安装更详细的过程以及整个文章系列的更新思路都在公众号**Java3y**连载哟！
 

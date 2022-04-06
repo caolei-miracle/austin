@@ -3,13 +3,16 @@ package com.java3y.austin.handler.handler.impl;
 import cn.hutool.core.collection.CollUtil;
 import com.alibaba.fastjson.JSON;
 import com.google.common.base.Throwables;
+import com.java3y.austin.common.constant.AustinConstant;
+import com.java3y.austin.common.constant.SendAccountConstant;
 import com.java3y.austin.common.domain.TaskInfo;
-import com.java3y.austin.common.dto.EnterpriseWeChatContentModel;
+import com.java3y.austin.common.dto.model.EnterpriseWeChatContentModel;
 import com.java3y.austin.common.enums.ChannelType;
 import com.java3y.austin.handler.handler.BaseHandler;
 import com.java3y.austin.handler.handler.Handler;
 import com.java3y.austin.support.utils.AccountUtils;
 import lombok.extern.slf4j.Slf4j;
+import me.chanjar.weixin.common.error.WxMpErrorMsgEnum;
 import me.chanjar.weixin.cp.api.WxCpService;
 import me.chanjar.weixin.cp.api.impl.WxCpMessageServiceImpl;
 import me.chanjar.weixin.cp.api.impl.WxCpServiceImpl;
@@ -29,16 +32,9 @@ import org.springframework.stereotype.Component;
 public class EnterpriseWeChatHandler extends BaseHandler implements Handler {
 
     /**
-     * 构建WxCpMessage时需要用的常量
+     * 切割userId 的分隔符
      */
-    private static final String ALL = "@all";
     private static final String DELIMITER = "|";
-
-    /**
-     * 账号信息
-     */
-    private static final String ENTERPRISE_WECHAT_ACCOUNT_KEY = "enterpriseWechatAccount";
-    private static final String PREFIX = "enterprise_wechat_";
 
     @Autowired
     private AccountUtils accountUtils;
@@ -50,11 +46,14 @@ public class EnterpriseWeChatHandler extends BaseHandler implements Handler {
     @Override
     public boolean handler(TaskInfo taskInfo) {
         try {
-            WxCpDefaultConfigImpl accountConfig = accountUtils.getAccount(taskInfo.getSendAccount(), ENTERPRISE_WECHAT_ACCOUNT_KEY, PREFIX, new WxCpDefaultConfigImpl());
+            WxCpDefaultConfigImpl accountConfig = accountUtils.getAccount(taskInfo.getSendAccount(), SendAccountConstant.ENTERPRISE_WECHAT_ACCOUNT_KEY, SendAccountConstant.ENTERPRISE_WECHAT_PREFIX, new WxCpDefaultConfigImpl());
             WxCpMessageServiceImpl messageService = new WxCpMessageServiceImpl(initService(accountConfig));
             WxCpMessageSendResult result = messageService.send(buildWxCpMessage(taskInfo, accountConfig.getAgentId()));
-            buildAnchorState(result);
-            return true;
+            if (Integer.valueOf(WxMpErrorMsgEnum.CODE_0.getCode()).equals(result.getErrCode())) {
+                return true;
+            }
+            // 常见的错误 应当 关联至 AnchorState,由austin后台统一透出失败原因
+            log.error("EnterpriseWeChatHandler#handler fail!result:{},params:{}", JSON.toJSONString(result), JSON.toJSONString(taskInfo));
         } catch (Exception e) {
             log.error("EnterpriseWeChatHandler#handler fail:{},params:{}",
                     Throwables.getStackTraceAsString(e), JSON.toJSONString(taskInfo));
@@ -62,14 +61,6 @@ public class EnterpriseWeChatHandler extends BaseHandler implements Handler {
         return false;
     }
 
-    /**
-     * 打点相关的信息记录
-     *
-     * @param result
-     */
-    private void buildAnchorState(WxCpMessageSendResult result) {
-
-    }
 
 
     /**
@@ -93,7 +84,7 @@ public class EnterpriseWeChatHandler extends BaseHandler implements Handler {
      */
     private WxCpMessage buildWxCpMessage(TaskInfo taskInfo, Integer agentId) {
         String userId;
-        if (ALL.equals(CollUtil.getFirst(taskInfo.getReceiver()))) {
+        if (AustinConstant.SEND_ALL.equals(CollUtil.getFirst(taskInfo.getReceiver()))) {
             userId = CollUtil.getFirst(taskInfo.getReceiver());
         } else {
             userId = StringUtils.join(taskInfo.getReceiver(), DELIMITER);
